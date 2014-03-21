@@ -5,7 +5,7 @@ var GRID_COLOR = '#eeeeee';
 var AXES_COLOR = '#aaaaaa';
 
 var CURVE_WIDTH = 2;
-var DEFAULT_SAMPLES = 100;
+var DEFAULT_SAMPLES = 30;
 
 var ViewManager = {
    // view window state
@@ -29,22 +29,29 @@ var ViewManager = {
       this.pixelsPerX *= xFactor;
       this.pixelsPerY *= yFactor;
 
-      this.redrawCurves();
+      //this.redrawCurves();
+      for (var i in this.curves)
+         this.curves[i].path.scale(xFactor, yFactor, view.center);
    },
 
    // shifts all drawn images by 'dx' horizontal and 'dy' pixels. affects all future
    // drawing, including subsequently added curves
-   translate: function(dx, dy) {
-      var disp = new Point(dx, dy);
+   translate: function(disp) {
       this.trueCenter += disp;
 
       for (var i in this.curves)
          this.curves[i].path.position += disp;
       
-      for (var i in this.grid.lines)
-         this.grid.lines[i].position += disp;
-      this.grid.xAxis.position += disp;
-      this.grid.yAxis.position += disp;
+      for (var i in this.grid.vertLines)
+         this.grid.vertLines[i].position.x += disp.x;
+      for (var i in this.grid.horizLines)
+         this.grid.horizLines[i].position.y += disp.y;
+
+      this.grid.xAxis.position.y += disp.y;
+      this.grid.yAxis.position.x += disp.x;
+
+      wrapGridLines(this.grid.vertLines, GRID_WIDTH, 'x', 'width');
+      wrapGridLines(this.grid.horizLines, GRID_HEIGHT, 'y', 'height');
    },
 
    // adds a new path, returning its id (for later lookup). 'fn' specifies
@@ -87,6 +94,22 @@ var ViewManager = {
    },
 }
 
+function wrapGridLines(gridLines, offset, dim, upperBound) {
+   var first = gridLines[0];
+   var last = gridLines[gridLines.length - 1];
+   if (first.position[dim] > 0) {
+      // last to first
+      last = gridLines.pop();
+      last.position[dim] = first.position[dim] - offset;
+      gridLines.unshift(last);
+   } else if (last.position[dim] < view.bounds[upperBound]) {
+      // first to last
+      first = gridLines.shift();
+      first.position[dim] = last.position[dim] + offset;
+      gridLines.push(first);
+   }
+}
+
 // translates a point in functional space to a point in screen space
 // note: depends on 'ViewManager' state
 Point.prototype.toScreenSpace = function() {
@@ -101,12 +124,18 @@ Point.prototype.toFunctionSpace = function() {
    this.y = (ViewManager.trueCenter.y / 2 - this.y) / ViewManager.pixelsPerY;
 }
 
-//ViewManager.drawGrid();
-//ViewManager.scale(2);
 ViewManager.addCurve(getPolynomialByZeros([0, 1, -1]), 'black');
 ViewManager.addCurve(getPolynomialByCoeff([0, 0, 1]), 'red');
 ViewManager.addCurve(getPolynomialByZeros([0]), 'blue', 2);
-ViewManager.translate(100, 200);
+
+function onMouseDrag(event) {
+   ViewManager.translate(event.delta);
+}
+
+function onKeyDown(event) {
+   if (event.key == 'space')
+      ViewManager.scale(1.1);
+}
 
 // gets a list of sample Points on the given curve, uniformly distributed along
 // the input range
@@ -149,42 +178,55 @@ function getPolynomialByZeros(zeros) {
    }
 }
 
-// draws the axes and grid
+// draws the axes and grid. returns a object with three fields:
+//    'xAxis', 'yAxis': line paths for the x and y axes
+//    'vertLines': a sorted array containing the verticle grid lines
+//    'horizLines': a sorted array containing the horizontal grid lines
 function drawGrid(center, viewWidth, viewHeight) {
    var grid = {};
 
-   // write accent lines up to twice the viewSize, precomputing for dragging
-   grid.lines = [];
+   grid.vertLines = [];
+   grid.horizLines = [];
 
    var bounds = {
+   /*
       "minX": -viewWidth,
       "minY": -viewHeight,
       "maxX": 2 * viewWidth,
       "maxY": 2 * viewHeight,
+   */
+      "minX": 0,
+      "minY": 0,
+      "maxX": viewWidth,
+      "maxY": viewHeight,
    }
 
    // above x-axis
-   for (var i = center.y - GRID_HEIGHT; i > bounds.minY; i -= GRID_HEIGHT)
-      grid.lines.push(getLine(bounds.minX, i, bounds.maxX, i));
+   for (var i = center.y - GRID_HEIGHT; i > bounds.minY - GRID_HEIGHT; i -= GRID_HEIGHT)
+      grid.horizLines.push(getLine(bounds.minX, i, bounds.maxX, i));
+   grid.horizLines.reverse();
 
    // below x-axis
-   for (var i = center.y + GRID_HEIGHT; i < bounds.maxY; i += GRID_HEIGHT)
-      grid.lines.push(getLine(bounds.minX, i, bounds.maxX, i));
+   for (var i = center.y + GRID_HEIGHT; i < bounds.maxY + GRID_HEIGHT; i += GRID_HEIGHT)
+      grid.horizLines.push(getLine(bounds.minX, i, bounds.maxX, i));
 
    // left of y-axis
-   for (var i = center.x - GRID_WIDTH; i > bounds.minX; i -= GRID_HEIGHT)
-      grid.lines.push(getLine(i, bounds.minY, i, bounds.maxY));
+   for (var i = center.x - GRID_WIDTH; i > bounds.minX - GRID_WIDTH; i -= GRID_HEIGHT)
+      grid.vertLines.push(getLine(i, bounds.minY, i, bounds.maxY));
+   grid.vertLines.reverse();
 
    // right of y-axis
-   for (var i = center.x + GRID_WIDTH; i < bounds.maxX; i += GRID_HEIGHT)
-      grid.lines.push(getLine(i, bounds.minY, i, bounds.maxY));
+   for (var i = center.x + GRID_WIDTH; i < bounds.maxX + GRID_WIDTH; i += GRID_HEIGHT)
+      grid.vertLines.push(getLine(i, bounds.minY, i, bounds.maxY));
 
    grid.xAxis = getLine(bounds.minX, center.y, bounds.maxX, center.y);
    grid.yAxis = getLine(center.x, bounds.minY, center.x, bounds.maxY);
 
    grid.xAxis.strokeColor = grid.yAxis.strokeColor = AXES_COLOR;
-   for (var i in grid.lines)
-      grid.lines[i].strokeColor = GRID_COLOR;
+   for (var i in grid.vertLines)
+      grid.vertLines[i].strokeColor = GRID_COLOR;
+   for (var i in grid.horizLines)
+      grid.horizLines[i].strokeColor = GRID_COLOR;
    return grid;
 }
 
