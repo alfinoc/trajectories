@@ -4,6 +4,7 @@ var GRID_HEIGHT = 100;
 var GRID_COLOR = '#eeeeee';
 var AXES_COLOR = '#aaaaaa';
 
+var CURVE_SPAWN_MARGIN = 100;
 var CURVE_WIDTH = 2;
 var DEFAULT_SAMPLES = 30;
 
@@ -29,9 +30,22 @@ var ViewManager = {
       this.pixelsPerX *= xFactor;
       this.pixelsPerY *= yFactor;
 
-      //this.redrawCurves();
+      GRID_WIDTH *= xFactor;
+      GRID_HEIGHT *= yFactor;
+
       for (var i in this.curves)
          this.curves[i].path.scale(xFactor, yFactor, view.center);
+
+      for (var i in this.grid.vertLines)
+         this.grid.vertLines[i].scale(xFactor, 1, view.center);
+      for (var i in this.grid.horizLines)
+         this.grid.horizLines[i].scale(1, yFactor, view.center);
+
+      this.grid.xAxis.scale(1, yFactor, view.center);
+      this.grid.yAxis.scale(xFactor, 1, view.center);
+
+      wrapGridLines(this.grid.vertLines, GRID_WIDTH, 'width');
+      wrapGridLines(this.grid.horizLines, GRID_HEIGHT, 'height');
    },
 
    // shifts all drawn images by 'dx' horizontal and 'dy' pixels. affects all future
@@ -39,9 +53,11 @@ var ViewManager = {
    translate: function(disp) {
       this.trueCenter += disp;
 
+      // curves
       for (var i in this.curves)
          this.curves[i].path.position += disp;
-      
+
+      // grid lines
       for (var i in this.grid.vertLines)
          this.grid.vertLines[i].position.x += disp.x;
       for (var i in this.grid.horizLines)
@@ -50,8 +66,8 @@ var ViewManager = {
       this.grid.xAxis.position.y += disp.y;
       this.grid.yAxis.position.x += disp.x;
 
-      wrapGridLines(this.grid.vertLines, GRID_WIDTH, 'x', 'width');
-      wrapGridLines(this.grid.horizLines, GRID_HEIGHT, 'y', 'height');
+      wrapGridLines(this.grid.vertLines, GRID_WIDTH, 'width');
+      wrapGridLines(this.grid.horizLines, GRID_HEIGHT, 'height');
    },
 
    // adds a new path, returning its id (for later lookup). 'fn' specifies
@@ -89,25 +105,48 @@ var ViewManager = {
       var samples = getFunctionSamples(fn, numSamples, 0, view.bounds.width);
       var curve = new Path(samples);
       curve.strokeWidth = CURVE_WIDTH;
+      curve.fullySelected = true;
       curve.smooth();
       return curve;
    },
 }
 
-function wrapGridLines(gridLines, offset, dim, upperBound) {
+// based on the state of the view manager, creates and removes grid lines so that
+// the window is uniformly covered.
+// 'gridLines': the array, sorted by position (left -> right; top -> bottom) of
+// all grid line paths in a given dimension
+// 'offset': the scaled positional difference between consecutive grid lines
+// 'upperBound': either 'width' or 'height', the paperscript view dimension corresponding
+// to the farthest right/down a grid line can be
+function wrapGridLines(gridLines, offset, upperBound) {
+   var dim = (upperBound == 'width') ? 'x' : 'y';
    var first = gridLines[0];
    var last = gridLines[gridLines.length - 1];
-   if (first.position[dim] > 0) {
-      // last to first
-      last = gridLines.pop();
-      last.position[dim] = first.position[dim] - offset;
-      gridLines.unshift(last);
-   } else if (last.position[dim] < view.bounds[upperBound]) {
-      // first to last
-      first = gridLines.shift();
-      first.position[dim] = last.position[dim] + offset;
-      gridLines.push(first);
+   while (first.position[dim] > 0) {
+      var newLine = first.clone();
+      newLine.position[dim] = first.position[dim] - offset;
+      gridLines.unshift(newLine);
+      console.log("hit. new line: " + newLine.position);
+
+      first = gridLines[0];
+      last = gridLines[gridLines.length - 1];
    }
+
+   while (last.position[dim] < view.bounds[upperBound]) {
+      // first to last
+      var newLine = last.clone();
+      newLine.position[dim] = last.position[dim] + offset;
+      gridLines.push(newLine);
+
+      first = gridLines[0];
+      last = gridLines[gridLines.length - 1];
+   }
+
+   // destroy lines that are definitely out of range
+   if (first.position[dim] < -offset)
+      gridLines.shift();
+   if (last.position[dim] > view.bounds[upperBound] + offset)
+      gridLines.pop();
 }
 
 // translates a point in functional space to a point in screen space
@@ -133,12 +172,15 @@ function onMouseDrag(event) {
 }
 
 function onKeyDown(event) {
-   if (event.key == 'space')
+   if (event.key == 'f')
       ViewManager.scale(1.1);
+   else if (event.key == 'd')
+      ViewManager.scale(.9);
 }
 
 // gets a list of sample Points on the given curve, uniformly distributed along
-// the input range
+// the input range. filters out, pretty conservatively, any points that are well
+// outside the view window range
 // 'fn': functional valued map from x to y values
 // 'numSamples': the number of sample points to generate
 // 'minInput', 'maxInput' in screen space (pixels): define input range
@@ -151,7 +193,8 @@ function getFunctionSamples(fn, numSamples, minInput, maxInput) {
       pt.toFunctionSpace();
       pt.y = fn(pt.x);  // compute y in functional space
       pt.toScreenSpace();
-      res.push(pt);
+      if (pt.getDistance(view.center) < Math.max(view.bounds.width, view.bounds.height))
+         res.push(pt);
    }
    return res;
 }
@@ -189,12 +232,6 @@ function drawGrid(center, viewWidth, viewHeight) {
    grid.horizLines = [];
 
    var bounds = {
-   /*
-      "minX": -viewWidth,
-      "minY": -viewHeight,
-      "maxX": 2 * viewWidth,
-      "maxY": 2 * viewHeight,
-   */
       "minX": 0,
       "minY": 0,
       "maxX": viewWidth,
