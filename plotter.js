@@ -3,10 +3,15 @@ var GRID_WIDTH = 100;
 var GRID_HEIGHT = 100;
 var GRID_COLOR = '#eeeeee';
 var AXES_COLOR = '#aaaaaa';
+var TRAJ_COLOR = 'green';
+var TRAJ_HANDLE_RAD = 5;
 
-var CURVE_SPAWN_MARGIN = 100;
+var EXTREMAL_MARGIN = 1000;
+var NUM_EXTREME = 10;
 var CURVE_WIDTH = 2;
-var DEFAULT_SAMPLES = 30;
+var DEFAULT_SAMPLES = 300;
+
+var MAX_ITER = 10;
 
 var ViewManager = {
    // view window state
@@ -18,6 +23,11 @@ var ViewManager = {
    // x values to y, and 'path' storing its most recently generated control points
    curves: [],
 
+   // a list of trajectories {curve, path} pairs where curve is an element of
+   // 'this.curves' and 'path' is a sequence of points, starting with the seed
+   // on the x-axis followed by pairs of points (function value, y=x bounce)
+   trajectories: [],
+
    // axes and reference grid
    grid: drawGrid(view.center, view.bounds.width, view.bounds.height),
 
@@ -27,6 +37,7 @@ var ViewManager = {
       if (yFactor == undefined)
          yFactor = xFactor;
 
+      this.trueCenter.scale(xFactor, yFactor, view.center);
       this.pixelsPerX *= xFactor;
       this.pixelsPerY *= yFactor;
 
@@ -35,6 +46,12 @@ var ViewManager = {
 
       for (var i in this.curves)
          this.curves[i].path.scale(xFactor, yFactor, view.center);
+
+      for (var i in this.trajectories) {
+         this.trajectories[i].traj.scale(xFactor, yFactor, view.center);
+         this.trajectories[i].handle.scale(xFactor, yFactor, view.center);
+         this.trajectories[i].handle.scale(1/xFactor, 1/yFactor);
+      }
 
       for (var i in this.grid.vertLines)
          this.grid.vertLines[i].scale(xFactor, 1, view.center);
@@ -56,6 +73,12 @@ var ViewManager = {
       // curves
       for (var i in this.curves)
          this.curves[i].path.position += disp;
+
+      // trajectories
+      for (var i in this.trajectories) {
+         this.trajectories[i].traj.position += disp;
+         this.trajectories[i].handle.position += disp;
+      }
 
       // grid lines
       for (var i in this.grid.vertLines)
@@ -89,26 +112,49 @@ var ViewManager = {
       this.curves[id] = undefined;
    },
 
-   // redraws all stored curves, recomputing control points
-   redrawCurves: function() {
-      for (var i in this.curves) {
-         var color = path.strokeColor;
-         var numSamples = path.samples.length;
-         this.curves[i].path.remove();
-         this.curves[i].path = this.drawFunction(this.curves[i].fn, color, numSamples);
-      }
-   },
-
    // draws a the function defined the by the functional-valed 'fn' with number
    // of samples 'numSamples'.
    drawFunction: function(fn, numSamples) {
-      var samples = getFunctionSamples(fn, numSamples, 0, view.bounds.width);
+      var samples = getFunctionSamples(fn, numSamples, -view.bounds.width,
+                                                    2 * view.bounds.width);
       var curve = new Path(samples);
       curve.strokeWidth = CURVE_WIDTH;
-      curve.fullySelected = true;
       curve.smooth();
       return curve;
    },
+
+   // generates a trajectory based on 'curveId' and 'seed' (see genTrajectory
+   // documentation), stores a reference to this trajectory, and returns its id
+   addTrajectory: function(curveId, seed) {
+      var curve = this.curves[curveId];
+      var traj = genTrajectory(curve, seed);
+
+      var seedPt = new Point(seed, 0).toScreenSpace();
+      seedPt.y = this.trueCenter.y;
+      var seedHandle = new Path.Circle(seedPt, TRAJ_HANDLE_RAD);
+      seedHandle.fillColor = TRAJ_COLOR;
+
+      seedHandle.onMouseEnter = function() { this.scale(2); }
+      seedHandle.onMouseLeave = function() { this.scale(0.5); }
+
+      this.trajectories.push({'curve': curve, 'traj':traj,
+                              'seed':seed, 'handle':seedHandle});
+      return this.trajectories.length -1;
+   },
+
+   // moves the seed of the trajectory with given 'trajId' to functional-valued
+   // 'newSeed', redrawing the curve based on the new seed. removes previous
+   // trajectory.
+   moveTrajectory: function(trajId, newSeed) {
+      var prev = this.trajectories[trajId];
+      var newTraj = genTrajectory(prev.curve, newSeed);
+
+      prev.traj.remove();
+      prev.traj = newTraj;
+      prev.seed = newSeed;
+      prev.handle.position = new Point(newSeed, 0).toScreenSpace();
+      prev.handle.position.y = this.trueCenter.y
+   }
 }
 
 // based on the state of the view manager, creates and removes grid lines so that
@@ -126,8 +172,6 @@ function wrapGridLines(gridLines, offset, upperBound) {
       var newLine = first.clone();
       newLine.position[dim] = first.position[dim] - offset;
       gridLines.unshift(newLine);
-      console.log("hit. new line: " + newLine.position);
-
       first = gridLines[0];
       last = gridLines[gridLines.length - 1];
    }
@@ -149,11 +193,44 @@ function wrapGridLines(gridLines, offset, upperBound) {
       gridLines.pop();
 }
 
+// plots a trajectory until it stabilizes (either converges such that consecutive
+// iterations map to the same pixel or the trajectory pops out of view)
+// 'curveId': the id for the curve to use as an iteration rule
+// 'seed': the functional valued initial input to the desired trajectory
+function genTrajectory(curve, seed) {
+   var traj = new Path();
+   traj.strokeColor = TRAJ_COLOR;
+
+   var fnPt = new Point(seed, 0);
+   var prev;
+   traj.add(prev = fnPt.clone().toScreenSpace());
+
+   var iterCount = 0;
+   while (0 < prev.x && prev.x < view.bounds.width &&
+          0 < prev.y && prev.y < view.bounds.height && iterCount < MAX_ITER) {
+
+      var newIter;
+
+      fnPt.applyFunction(curve.fn);
+      traj.add(fnPt.clone().toScreenSpace());
+      fnPt.x = fnPt.y;
+      traj.add(newIter = fnPt.clone().toScreenSpace());
+
+      if (newIter.getDistance(prev) < 1)// convergence
+         break;
+
+      prev = newIter;
+      iterCount++;
+   }
+   return traj;
+}
+
 // translates a point in functional space to a point in screen space
 // note: depends on 'ViewManager' state
 Point.prototype.toScreenSpace = function() {
    this.x = this.x * ViewManager.pixelsPerX + ViewManager.trueCenter.x;
    this.y = -this.y * ViewManager.pixelsPerY + ViewManager.trueCenter.y;
+   return this;
 }
 
 // translates a point in screen space to a point in screen functional
@@ -161,14 +238,44 @@ Point.prototype.toScreenSpace = function() {
 Point.prototype.toFunctionSpace = function() {
    this.x = (this.x - ViewManager.trueCenter.x) / ViewManager.pixelsPerX;
    this.y = (ViewManager.trueCenter.y / 2 - this.y) / ViewManager.pixelsPerY;
+   return this;
 }
 
-ViewManager.addCurve(getPolynomialByZeros([0, 1, -1]), 'black');
-ViewManager.addCurve(getPolynomialByCoeff([0, 0, 1]), 'red');
-ViewManager.addCurve(getPolynomialByZeros([0]), 'blue', 2);
+// replaces a point's y value with the fn(x)
+Point.prototype.applyFunction = function(fn) {
+   this.y = fn(this.x);
+   return this;
+}
+
+// scales the point in horizontal and vertical dimensions by 'xFactor' and 'yFactor',
+// respectively about the point 'about'. generally same behavior as PS's scale.
+Point.prototype.scale = function(xFactor, yFactor, about) {
+   this.x = xFactor * (this.x - about.x) + about.x;
+   this.y = yFactor * (this.y - about.y) + about.y;
+}
+
+//var cubic = ViewManager.addCurve(getPolynomialByZeros([0, 1, -1]), 'red');
+var quad =  ViewManager.addCurve(getPolynomialByCoeff([2, 0, -1]), 'black');
+var line =  ViewManager.addCurve(getPolynomialByZeros([0]), 'blue', 10);
+ViewManager.addTrajectory(quad, 1.2);
 
 function onMouseDrag(event) {
-   ViewManager.translate(event.delta);
+   if (movingSeed)
+      ViewManager.moveTrajectory(0, event.point.toFunctionSpace().x);
+   else
+      ViewManager.translate(event.delta);
+}
+
+var movingSeed = false;
+function onMouseDown(event) {
+   for (var i in ViewManager.trajectories) {
+      if (ViewManager.trajectories[i].handle.hitTest(event.point))
+         movingSeed = true;
+   }
+}
+
+function onMouseUp(event) {
+   movingSeed = false;
 }
 
 function onKeyDown(event) {
@@ -191,11 +298,12 @@ function getFunctionSamples(fn, numSamples, minInput, maxInput) {
    for (var i = minInput; i <= maxInput; i += incr) {
       var pt = new Point(i, 0);  // dummy y value
       pt.toFunctionSpace();
-      pt.y = fn(pt.x);  // compute y in functional space
+      pt.applyFunction(fn);  // compute y in functional space
       pt.toScreenSpace();
-      if (pt.getDistance(view.center) < Math.max(view.bounds.width, view.bounds.height))
+      if (pt.getDistance(view.center) <= Math.max(minInput, maxInput))
          res.push(pt);
    }
+
    return res;
 }
 
@@ -271,3 +379,5 @@ function drawGrid(center, viewWidth, viewHeight) {
 function getLine(x1, y1, x2, y2) {
    return new Path(new Point(x1, y1), new Point(x2, y2));
 }
+
+window.ViewManager = ViewManager;
