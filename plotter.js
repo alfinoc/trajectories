@@ -103,6 +103,7 @@ var ViewManager = {
       var path = this.drawFunction(fn, numSamples);
       path.strokeColor = color;
       this.curves.push({ "fn":fn, "path": path});
+      paper.view.draw();
       return this.curves.length - 1;
    },
 
@@ -254,11 +255,6 @@ Point.prototype.scale = function(xFactor, yFactor, about) {
    this.y = yFactor * (this.y - about.y) + about.y;
 }
 
-//var cubic = ViewManager.addCurve(getPolynomialByZeros([0, 1, -1]), 'red');
-var quad =  ViewManager.addCurve(getPolynomialByCoeff([2, 0, -1]), 'black');
-var line =  ViewManager.addCurve(getPolynomialByZeros([0]), 'blue', 10);
-ViewManager.addTrajectory(quad, 1.2);
-
 function onMouseDrag(event) {
    if (movingSeed)
       ViewManager.moveTrajectory(0, event.point.toFunctionSpace().x);
@@ -305,28 +301,6 @@ function getFunctionSamples(fn, numSamples, minInput, maxInput) {
    }
 
    return res;
-}
-
-// returns a polynomial function based on 'coeff' an array of coefficients, the
-// ith index of which is the coefficient for the term of exponent i in the polynomial
-function getPolynomialByCoeff(coeff) {
-   return function(x) {
-      var val = 0;
-      for (var i = 0; i < coeff.length; i++)
-         val += coeff[i] * Math.pow(x, i);
-      return val;
-   }
-}
-
-// returns a polynomial function based on 'zeros' an array of zeros, where each
-// zero z corresponds to a (x - z) factor in the polynomial
-function getPolynomialByZeros(zeros) {
-   return function(x) {
-      var val = 1;
-      for (var i = 0; i < zeros.length; i++)
-         val *= (x - zeros[i]);
-      return val;
-   }
 }
 
 // draws the axes and grid. returns a object with three fields:
@@ -379,5 +353,32 @@ function drawGrid(center, viewWidth, viewHeight) {
 function getLine(x1, y1, x2, y2) {
    return new Path(new Point(x1, y1), new Point(x2, y2));
 }
+/*
+//var cubic = ViewManager.addCurve(getPolynomialByZeros([0, 1, -1]), 'red');
+var quad =  ViewManager.addCurve(getPolynomialByCoeff([2, 0, -1]), 'black');
+var line =  ViewManager.addCurve(getPolynomialByZeros([0]), 'blue', 10);
+ViewManager.addTrajectory(quad, 1.2);
 
+// returns a polynomial function based on 'coeff' an array of coefficients, the
+// ith index of which is the coefficient for the term of exponent i in the polynomial
+function getPolynomialByCoeff(coeff) {
+   return function(x) {
+      var val = 0;
+      for (var i = 0; i < coeff.length; i++)
+         val += coeff[i] * Math.pow(x, i);
+      return val;
+   }
+}
+
+// returns a polynomial function based on 'zeros' an array of zeros, where each
+// zero z corresponds to a (x - z) factor in the polynomial
+function getPolynomialByZeros(zeros) {
+   return function(x) {
+      var val = 1;
+      for (var i = 0; i < zeros.length; i++)
+         val *= (x - zeros[i]);
+      return val;
+   }
+}
+*/
 window.ViewManager = ViewManager;
