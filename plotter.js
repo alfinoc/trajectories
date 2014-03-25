@@ -3,7 +3,7 @@ var GRID_WIDTH = 100;
 var GRID_HEIGHT = 100;
 var GRID_COLOR = '#eeeeee';
 var AXES_COLOR = '#aaaaaa';
-var TRAJ_COLOR = 'green';
+var TRAJ_COLOR = 'black';
 var TRAJ_HANDLE_RAD = 5;
 
 var EXTREMAL_MARGIN = 1000;
@@ -22,6 +22,7 @@ var ViewManager = {
    // a list of {fn, path} pairs, 'fn' storing that actual JS function to map
    // x values to y, and 'path' storing its most recently generated control points
    curves: [],
+   activeCurve: undefined,
 
    // a list of trajectories {curve, path} pairs where curve is an element of
    // 'this.curves' and 'path' is a sequence of points, starting with the seed
@@ -113,6 +114,10 @@ var ViewManager = {
       this.curves[id] = undefined;
    },
 
+   setActiveCurve: function(id) {
+      this.activeCurve = id;
+   },
+
    // draws a the function defined the by the functional-valed 'fn' with number
    // of samples 'numSamples'.
    drawFunction: function(fn, numSamples) {
@@ -126,17 +131,22 @@ var ViewManager = {
 
    // generates a trajectory based on 'curveId' and 'seed' (see genTrajectory
    // documentation), stores a reference to this trajectory, and returns its id
-   addTrajectory: function(curveId, seed) {
+   addTrajectory: function(curveId, seed, color) {
+      if (color == undefined)
+         color = TRAJ_COLOR
+
       var curve = this.curves[curveId];
       var traj = genTrajectory(curve, seed);
+      traj.strokeColor = color;
+
 
       var seedPt = new Point(seed, 0).toScreenSpace();
       seedPt.y = this.trueCenter.y;
       var seedHandle = new Path.Circle(seedPt, TRAJ_HANDLE_RAD);
-      seedHandle.fillColor = TRAJ_COLOR;
+      seedHandle.fillColor = color;
 
-      seedHandle.onMouseEnter = function() { this.scale(2); }
-      seedHandle.onMouseLeave = function() { this.scale(0.5); }
+      //seedHandle.onMouseEnter = function() { this.scale(2); }
+      //seedHandle.onMouseLeave = function() { this.scale(0.5); }
 
       this.trajectories.push({'curve': curve, 'traj':traj,
                               'seed':seed, 'handle':seedHandle});
@@ -150,6 +160,7 @@ var ViewManager = {
       var prev = this.trajectories[trajId];
       var newTraj = genTrajectory(prev.curve, newSeed);
 
+      newTraj.strokeColor = prev.traj.strokeColor;
       prev.traj.remove();
       prev.traj = newTraj;
       prev.seed = newSeed;
@@ -200,8 +211,6 @@ function wrapGridLines(gridLines, offset, upperBound) {
 // 'seed': the functional valued initial input to the desired trajectory
 function genTrajectory(curve, seed) {
    var traj = new Path();
-   traj.strokeColor = TRAJ_COLOR;
-
    var fnPt = new Point(seed, 0);
    var prev;
    traj.add(prev = fnPt.clone().toScreenSpace());
@@ -256,22 +265,23 @@ Point.prototype.scale = function(xFactor, yFactor, about) {
 }
 
 function onMouseDrag(event) {
-   if (movingSeed)
-      ViewManager.moveTrajectory(0, event.point.toFunctionSpace().x);
-   else
+   if (movingSeed) {      
+      ViewManager.moveTrajectory(movingSeed, event.point.toFunctionSpace().x);
+   } else
       ViewManager.translate(event.delta);
 }
 
-var movingSeed = false;
+var movingSeed = undefined;
 function onMouseDown(event) {
+   movingSeed = undefined;
    for (var i in ViewManager.trajectories) {
       if (ViewManager.trajectories[i].handle.hitTest(event.point))
-         movingSeed = true;
+         movingSeed = i;
    }
 }
 
 function onMouseUp(event) {
-   movingSeed = false;
+   movingSeed = undefined;
 }
 
 function onKeyDown(event) {
@@ -353,32 +363,10 @@ function drawGrid(center, viewWidth, viewHeight) {
 function getLine(x1, y1, x2, y2) {
    return new Path(new Point(x1, y1), new Point(x2, y2));
 }
-/*
-//var cubic = ViewManager.addCurve(getPolynomialByZeros([0, 1, -1]), 'red');
-var quad =  ViewManager.addCurve(getPolynomialByCoeff([2, 0, -1]), 'black');
-var line =  ViewManager.addCurve(getPolynomialByZeros([0]), 'blue', 10);
-ViewManager.addTrajectory(quad, 1.2);
 
-// returns a polynomial function based on 'coeff' an array of coefficients, the
-// ith index of which is the coefficient for the term of exponent i in the polynomial
-function getPolynomialByCoeff(coeff) {
-   return function(x) {
-      var val = 0;
-      for (var i = 0; i < coeff.length; i++)
-         val += coeff[i] * Math.pow(x, i);
-      return val;
-   }
-}
-
-// returns a polynomial function based on 'zeros' an array of zeros, where each
-// zero z corresponds to a (x - z) factor in the polynomial
-function getPolynomialByZeros(zeros) {
-   return function(x) {
-      var val = 1;
-      for (var i = 0; i < zeros.length; i++)
-         val *= (x - zeros[i]);
-      return val;
-   }
-}
-*/
-window.ViewManager = ViewManager;
+// initialize the plotter
+window.plotter = ViewManager;
+plotter.addCurve(getPolynomialByZeros([0]), 'black', 10);
+plotter.addCurve(getPolynomialByCoeff([2, 0, -1]), 'blue')
+plotter.addTrajectory(1, -.5, 'green');
+plotter.addTrajectory(1, .5, 'red');
