@@ -69,13 +69,14 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
          var formString = editElem.val();
          try {
             // retrieve, parse, and prettify input equation
+            formString = PolySimplifier.preformat(formString);
             var tree = parser.parse(formString);
-            //console.log(tree);
+            console.log("tree: " + tree);
             var coeff = PolySimplifier.reduceToGeneralForm(tree);
-            //console.log("simplified result: " + coeff);
+            console.log("simplified result: " + coeff);
             var numSamples = degree(coeff) <= 1 ? 10 : undefined;
             editElem.hide();
-            dispElem.html('$$' + formString + '$$');
+            dispElem.html(PolySimplifier.coeffToJQMath(coeff));
             dispElem.attr('title', coeff);
             M.parseMath(dispElem[0]);
 

@@ -23,8 +23,8 @@ canvas {
 }
 
 #newcurve svg {
-	-webkit-filter: drop-shadow( 2px 2px 2px lightgray );
-            filter: drop-shadow( 2px 2px 2px lightgray );
+	-webkit-filter: drop-shadow( 2px 2px 1px rgba(0,0,0,0.2) );
+            filter: drop-shadow( 2px 2px 1px rgba(0,0,0,0.2) );
 }
 
 #curvelist {
@@ -47,7 +47,7 @@ canvas {
 }
 
 #curvelist li {
-	box-shadow: 2px 2px 2px lightgray;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.2);
 	box-sizing: border-box;
 	background-color: white;
 	margin: 5px;

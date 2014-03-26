@@ -120,6 +120,7 @@ var ViewManager = {
       this.curves[id] = undefined;
    },
 
+   // sets the current active curve, upon which new trajectories will be created
    setActiveCurve: function(id) {
       this.activeCurve = id;
    },
@@ -135,24 +136,24 @@ var ViewManager = {
       return curve;
    },
 
-   // generates a trajectory based on 'curveId' and 'seed' (see genTrajectory
-   // documentation), stores a reference to this trajectory, and returns its id
-   addTrajectory: function(curveId, seed, color) {
+   // generates a trajectory based on 'seed' (see genTrajectory documentation),
+   // with given 'color'. trajectory hugs the active curve and is not created
+   // if none is active. stores a reference to the new trajectory, and returns its id.
+   addTrajectory: function(seed, color) {
       if (color == undefined)
          color = TRAJ_COLOR
 
-      var curve = this.curves[curveId];
+      if (activeCurve == undefined)
+         return;
+
+      var curve = this.curves[activeCurve];
       var traj = genTrajectory(curve, seed);
       traj.strokeColor = color;
-
 
       var seedPt = new Point(seed, 0).toScreenSpace();
       seedPt.y = this.trueCenter.y;
       var seedHandle = new Path.Circle(seedPt, TRAJ_HANDLE_RAD);
       seedHandle.fillColor = color;
-
-      //seedHandle.onMouseEnter = function() { this.scale(2); }
-      //seedHandle.onMouseLeave = function() { this.scale(0.5); }
 
       this.trajectories.push({'curve': curve, 'traj':traj,
                               'seed':seed, 'handle':seedHandle});

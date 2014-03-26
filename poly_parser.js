@@ -95,7 +95,7 @@ case 5:this.$ = ["quotient", $$[$0-2], $$[$0]];
 break;
 case 6:this.$ = ["power", $$[$0-2], $$[$0]];
 break;
-case 7:this.$ = ["negate", $$[$0]];
+case 7:this.$ = ["negative", $$[$0]];
 break;
 case 8:this.$ = $$[$0-1];
 break;

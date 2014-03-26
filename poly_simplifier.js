@@ -23,7 +23,6 @@ var PolySimplifier = {
             var e2 = this.reduceToGeneralForm(node[2]);
             return this.add(e1, e2);
          case "product":
-            console.log("e1: " + e1 + ", e2: " + e2);
             var e1 = this.reduceToGeneralForm(node[1]);
             var e2 = this.reduceToGeneralForm(node[2]);
             return this.multiply(e1, e2);
@@ -87,13 +86,52 @@ var PolySimplifier = {
 
    // returns a String representation of the tree with root 'node', in a form
    // readable by jqMath.
-   toString: function(node) {
+   coeffToJQMath: function(coeff) {
+      var termStrs = [];
+      for (var deg = coeff.length - 1; deg >= 0; deg--) {
+         if (coeff[deg]) {
+            var term = "";
 
+            term += coeff[deg] != 1 ? coeff[deg] : '';
+            term += deg >= 1 ? 'x' : '';
+            term += deg > 1 ? '^' + deg : '';
+            termStrs.push(term);
+         }
+      }
+      
+      if (termStrs.length == 0)
+         return "";
+      var res = "$$" + termStrs[0];
+      for (var i = 1; i < termStrs.length; i++) {
+         res += termStrs[i][0] == '-' ? '' : '+';
+         res += termStrs[i];
+      }
+      return res + "$$";
    },
 
+   // preforms the following adjustments to input 'str':
+   //    - removes all whitespace
+   //    - places '*' between adjacent variables 'x' and numbers
    preformat: function(str) {
       str = str.toLowerCase();
-      str = str.replace('pi', '\\pi')
-      
-   }
+      str = str.replace(/\s/g,'');
+      for (var i = 1; i < str.length; i++) {
+         //var numLet = Number(str[i]) && str[i - 1].match(/^[a-zA-Z]+$/);
+         //var letNum = Number(str[i - 1]) && str[i].match(/^[a-zA-Z]+$/);
+
+         var termParen = str[i - 1].match(/^[a-zA-Z\)]+$/) && str[i].match(/^[0-9a-zA-Z\(]+$/);
+         var parenTerm = str[i - 1].match(/^[0-9a-zA-Z\)]+$/) && str[i].match(/^[a-zA-Z\(]+$/);
+
+         //var dupLet = str[i].match(/^[a-zA-Z]+$/) && str[i + 1].match(/^[a-zA-Z]+$/)
+         //             && str[i] = str[i + 1];
+
+         //if (numLet || letNum || termParen || parenTerm) {
+         if (termParen || parenTerm) {
+            str = str.substring(0, i) + '*' + str.substring(i, str.length);
+            i++;  // just added a character
+         }
+      }
+      console.log("preformat says: " + str);
+      return str;
+   },
 }
