@@ -46,12 +46,15 @@ var ViewManager = {
       GRID_HEIGHT *= yFactor;
 
       for (var i in this.curves)
-         this.curves[i].path.scale(xFactor, yFactor, view.center);
+         if (this.curves[i])
+            this.curves[i].path.scale(xFactor, yFactor, view.center);
 
       for (var i in this.trajectories) {
-         this.trajectories[i].traj.scale(xFactor, yFactor, view.center);
-         this.trajectories[i].handle.scale(xFactor, yFactor, view.center);
-         this.trajectories[i].handle.scale(1/xFactor, 1/yFactor);
+         if (this.trajectories[i]) {
+            this.trajectories[i].traj.scale(xFactor, yFactor, view.center);
+            this.trajectories[i].handle.scale(xFactor, yFactor, view.center);
+            this.trajectories[i].handle.scale(1/xFactor, 1/yFactor);
+         }
       }
 
       for (var i in this.grid.vertLines)
@@ -73,12 +76,15 @@ var ViewManager = {
 
       // curves
       for (var i in this.curves)
-         this.curves[i].path.position += disp;
+         if (this.curves[i])
+            this.curves[i].path.position += disp;
 
       // trajectories
       for (var i in this.trajectories) {
-         this.trajectories[i].traj.position += disp;
-         this.trajectories[i].handle.position += disp;
+         if (this.trajectories[i]) {
+            this.trajectories[i].traj.position += disp;
+            this.trajectories[i].handle.position += disp;
+         }
       }
 
       // grid lines
@@ -366,7 +372,9 @@ function getLine(x1, y1, x2, y2) {
 
 // initialize the plotter
 window.plotter = ViewManager;
+/*
 plotter.addCurve(getPolynomialByZeros([0]), 'black', 10);
 plotter.addCurve(getPolynomialByCoeff([2, 0, -1]), 'blue')
 plotter.addTrajectory(1, -.5, 'green');
 plotter.addTrajectory(1, .5, 'red');
+*/

@@ -59,7 +59,6 @@ canvas {
 	border-left: 0px;
 
 	width: 170px;
-	margin-left: -160px;
 	cursor: pointer;
 }
 
@@ -92,8 +91,10 @@ canvas {
 }
 
 #curvelist li:hover {
+	/*
 	-webkit-animation: slideRight forwards .3s;
 	animation: slideRight forwards .3s;
+	*/
 }
 
 ::-webkit-input-placeholder { color: black; }

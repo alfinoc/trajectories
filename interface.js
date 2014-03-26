@@ -54,11 +54,7 @@ function setupCurveOption() {
 
    newCurve.click(function(event) {
       var target = $(event.target).closest('#curvelist li');
-      if (target.hasClass('selected')) {
-         unselectCurve(target);
-      } else {
-         selectCurve(target);
-      }
+      selectCurve(target);
    });
 
    newCurve.append(wrap);
@@ -71,11 +67,30 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
    return function(event) {
       if (event.which == 13) {
          var formString = editElem.val();
-         editElem.hide();
-         dispElem.html('$$' + formString + '$$');
-         M.parseMath(dispElem[0]);
-         plotter.addCurve(getPolynomialByZeros([0, 1, -1]), 'rgb(' + color + ')');
-         dispElem.show();
+         try {
+            // retrieve, parse, and prettify input equation
+            var tree = parser.parse(formString);
+            //console.log(tree);
+            var coeff = PolySimplifier.reduceToGeneralForm(tree);
+            //console.log("simplified result: " + coeff);
+            var numSamples = degree(coeff) <= 1 ? 10 : undefined;
+            editElem.hide();
+            dispElem.html('$$' + formString + '$$');
+            dispElem.attr('title', coeff);
+            M.parseMath(dispElem[0]);
+
+            // update plotter
+            var id;
+            if (id = listElem.attr('curveid'))
+               plotter.removeCurve(id);
+
+            id = plotter.addCurve(getPolynomialByCoeff(coeff),
+                                  'rgb(' + color + ')', numSamples);
+            listElem.attr('curveid', id);
+            dispElem.show();
+         } catch (err) {
+            console.log(err);
+         }
       }
    }
 }
@@ -89,6 +104,7 @@ function getEquationEditCallback(dispElem, inputElem) {
 }
 
 function selectCurve(listElem) {
+   unselectCurve($('#curvelist li.selected'));
    plotter.setActiveCurve(listElem.attr('curveid'));
    listElem.addClass('selected');
    listElem.find('.wrap').css('background-color', 'rgba(' + listElem.attr('color') + ',0.2)');
@@ -126,6 +142,14 @@ function getPolynomialByZeros(zeros) {
          val *= (x - zeros[i]);
       return val;
    }
+}
+
+// returns the highest degree of the polynomial coefficient array 'coeff'
+function degree(coeff) {
+   var last = coeff.length - 1;
+   while (!coeff[last] && last >= 0)
+      last--;
+   return last;
 }
 
 (function($){
