@@ -8,10 +8,6 @@ var DEFAULT_OPACITY = 0.5;
 window.onload = function() {
    var plotter = window.plotter;
    attachMouseHandlers();
-	//var cubic = plotter.addCurve(getPolynomialByZeros([0, 1, -1]), 'red');
-	//var quad =  plotter.addCurve(getPolynomialByCoeff([2, 0, -1]), 'black');
-	//var line =  plotter.addCurve(getPolynomialByZeros([0]), 'blue', 10);
-	//plotter.addTrajectory(quad, 1.2);
 }
 
 function attachMouseHandlers() {

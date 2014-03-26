@@ -64,6 +64,7 @@ var ViewManager = {
 
       this.grid.xAxis.scale(1, yFactor, view.center);
       this.grid.yAxis.scale(xFactor, 1, view.center);
+      this.grid.crossLine.scale(xFactor, yFactor, view.center);
 
       wrapGridLines(this.grid.vertLines, GRID_WIDTH, 'width');
       wrapGridLines(this.grid.horizLines, GRID_HEIGHT, 'height');
@@ -95,6 +96,7 @@ var ViewManager = {
 
       this.grid.xAxis.position.y += disp.y;
       this.grid.yAxis.position.x += disp.x;
+      this.grid.crossLine.position += disp;
 
       wrapGridLines(this.grid.vertLines, GRID_WIDTH, 'width');
       wrapGridLines(this.grid.horizLines, GRID_HEIGHT, 'height');
@@ -102,13 +104,14 @@ var ViewManager = {
 
    // adds a new path, returning its id (for later lookup). 'fn' specifies
    // a functional-valued JS function of one input (y -> y). the path is drawn
-   // with given 'color' and optional number of samples 'numSamples'. if latter
-   // is undefined, uses default
-   addCurve: function(fn, color, numSamples) {
+   // with given 'color' and optional number of samples 'numSamples' and curve
+   // width 'strokeWidth'. if either of these latter two is undefined, uses default.
+   addCurve: function(fn, color, numSamples, strokeWidth) {
       if (numSamples == undefined)
          numSamples = DEFAULT_SAMPLES;
-      var path = this.drawFunction(fn, numSamples);
-      path.strokeColor = color;
+      if (strokeWidth == undefined)
+         strokeWidth = CURVE_WIDTH;
+      var path = this.drawFunction(fn, numSamples, strokeWidth, color);
       this.curves.push({ "fn":fn, "path": path});
       paper.view.draw();
       return this.curves.length - 1;
@@ -125,14 +128,15 @@ var ViewManager = {
       this.activeCurve = id;
    },
 
-   // draws a the function defined the by the functional-valed 'fn' with number
-   // of samples 'numSamples'.
-   drawFunction: function(fn, numSamples) {
+   // draws a the function defined the by the functional-valued 'fn' with number
+   // of samples 'numSamples', a curve width 'strokeWidth', and provided 'color'
+   drawFunction: function(fn, numSamples, strokeWidth, color) {
       var samples = getFunctionSamples(fn, numSamples, -view.bounds.width,
                                                     2 * view.bounds.width);
       var curve = new Path(samples);
-      curve.strokeWidth = CURVE_WIDTH;
+      curve.strokeWidth = strokeWidth;
       curve.smooth();
+      curve.strokeColor = color;
       return curve;
    },
 
@@ -341,10 +345,11 @@ function getFunctionSamples(fn, numSamples, minInput, maxInput) {
    return res;
 }
 
-// draws the axes and grid. returns a object with three fields:
+// draws the axes and grid. returns a object with five fields:
 //    'xAxis', 'yAxis': line paths for the x and y axes
 //    'vertLines': a sorted array containing the verticle grid lines
 //    'horizLines': a sorted array containing the horizontal grid lines
+//    'crossLine': line path for the y = x trajectory line
 function drawGrid(center, viewWidth, viewHeight) {
    var grid = {};
 
@@ -378,13 +383,44 @@ function drawGrid(center, viewWidth, viewHeight) {
 
    grid.xAxis = getLine(bounds.minX, center.y, bounds.maxX, center.y);
    grid.yAxis = getLine(center.x, bounds.minY, center.x, bounds.maxY);
+   var minDim = Math.min(bounds.maxX, bounds.maxY);
+   grid.crossLine = getLine(center.x - minDim, center.y + minDim,
+                            center.x + minDim, center.y - minDim)
 
-   grid.xAxis.strokeColor = grid.yAxis.strokeColor = AXES_COLOR;
+   // attach callbacks for initial animation
+   var duration = 0.2;
+   grid.xAxis.onFrame = getGradientAnimCallback(duration, AXES_COLOR);
+   grid.yAxis.onFrame = getGradientAnimCallback(duration, AXES_COLOR);
    for (var i in grid.vertLines)
-      grid.vertLines[i].strokeColor = GRID_COLOR;
+      grid.vertLines[i].onFrame = getGradientAnimCallback(duration, GRID_COLOR);
    for (var i in grid.horizLines)
-      grid.horizLines[i].strokeColor = GRID_COLOR;
+      grid.horizLines[i].onFrame = getGradientAnimCallback(duration, GRID_COLOR);
    return grid;
+}
+
+// returns a callback for the initial gradient animation of a path.
+// must be attached to the given line. 'baseColor' is the destination color
+// of the line and 'speedFactor' is the 1 over the number of seconds the animation
+// will take. 'start' is the beginning time of the animation, defaulting to 0
+function getGradientAnimCallback(duration, baseColor) {
+   var timeLeft = duration;
+   return function(event) {
+      if (timeLeft > 0) {
+         timeLeft -= event.delta;
+         var progress = (duration - timeLeft) / duration;
+         this.strokeColor = {
+            gradient: {
+               stops: [[baseColor, Math.min(Math.max(progress * 1.5 - 0.5, 0), 1)],
+                       ['white',   Math.min(Math.max(progress, 0), 1)]],
+               radial: true
+            },
+            origin: ViewManager.trueCenter,
+            destination: ViewManager.grid.xAxis.bounds.rightCenter,
+         }
+      } else {
+         this.onFrame = undefined;
+      }
+   }
 }
 
 // returns a new straight line path from point (x1, y1) to (x2, y2)
@@ -394,9 +430,4 @@ function getLine(x1, y1, x2, y2) {
 
 // initialize the plotter
 window.plotter = ViewManager;
-/*
-plotter.addCurve(getPolynomialByZeros([0]), 'black', 10);
-plotter.addCurve(getPolynomialByCoeff([2, 0, -1]), 'blue')
-plotter.addTrajectory(1, -.5, 'green');
-plotter.addTrajectory(1, .5, 'red');
-*/
+//plotter.addCurve(getPolynomialByZeros([0]), AXES_COLOR, 10, 1);
