@@ -92,9 +92,17 @@ var PolySimplifier = {
          if (coeff[deg]) {
             var term = "";
 
-            term += coeff[deg] != 1 ? coeff[deg] : '';
-            term += deg >= 1 ? 'x' : '';
-            term += deg > 1 ? '^' + deg : '';
+            if (coeff[deg] == -1)
+               term += '-';
+            else if (coeff[deg] != 1 || deg == 0)
+               term += coeff[deg];
+
+            if (deg != 0)
+               term += 'x';
+            
+            if (deg > 1)
+               term +=  '^' + deg;
+            
             termStrs.push(term);
          }
       }

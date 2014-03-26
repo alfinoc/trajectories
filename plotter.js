@@ -136,17 +136,15 @@ var ViewManager = {
       return curve;
    },
 
-   // generates a trajectory based on 'seed' (see genTrajectory documentation),
-   // with given 'color'. trajectory hugs the active curve and is not created
-   // if none is active. stores a reference to the new trajectory, and returns its id.
-   addTrajectory: function(seed, color) {
+   // generates a trajectory for curve with 'id' based on 'seed' (see genTrajectory
+   // documentation), with given 'color'. trajectory hugs the active curve and is not
+   // created if none is active. stores a reference to the new trajectory, and returns
+   // its id.
+   addTrajectory: function(id, seed, color) {
       if (color == undefined)
          color = TRAJ_COLOR
 
-      if (activeCurve == undefined)
-         return;
-
-      var curve = this.curves[activeCurve];
+      var curve = this.curves[id];
       var traj = genTrajectory(curve, seed);
       traj.strokeColor = color;
 
@@ -173,7 +171,14 @@ var ViewManager = {
       prev.seed = newSeed;
       prev.handle.position = new Point(newSeed, 0).toScreenSpace();
       prev.handle.position.y = this.trueCenter.y
-   }
+   },
+
+   // removes the trajectory with given 'id'
+   removeTrajectory: function(id) {
+      this.trajectories[id].traj.remove();
+      this.trajectories[id].handle.remove();
+      this.trajectories[id] = undefined;
+   },
 }
 
 // based on the state of the view manager, creates and removes grid lines so that
@@ -280,10 +285,26 @@ function onMouseDrag(event) {
 
 var movingSeed = undefined;
 function onMouseDown(event) {
+   // place seed on doubleclick
+   if (event.event.detail > 1 && ViewManager.activeCurve) {
+      console.log('heh');
+      var newSeed = event.point.clone();
+      newSeed.toFunctionSpace();
+      ViewManager.addTrajectory(ViewManager.activeCurve, newSeed.x, 'black');
+      return;
+   }
+
+   // otherwise we're manipulating a seed or the screen
    movingSeed = undefined;
-   for (var i in ViewManager.trajectories) {
-      if (ViewManager.trajectories[i].handle.hitTest(event.point))
+   var trajs = ViewManager.trajectories;
+   for (var i in trajs) {
+      if (trajs[i] && trajs[i].handle.hitTest(event.point)) {
+         if (Key.isDown('command')) {
+            ViewManager.removeTrajectory(i);
+            return;
+         }
          movingSeed = i;
+      }
    }
 }
 

@@ -59,7 +59,6 @@ function setupCurveOption() {
 
    newCurve.append(wrap);
    $('#curvelist').prepend(newCurve);
-   selectCurve(newCurve);
    eqEdit.focus();
 }
 
@@ -67,7 +66,7 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
    return function(event) {
       if (event.which == 13) {
          var formString = editElem.val();
-         try {
+         //try {
             // retrieve, parse, and prettify input equation
             formString = PolySimplifier.preformat(formString);
             var tree = parser.parse(formString);
@@ -89,9 +88,10 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
                                   'rgb(' + color + ')', numSamples);
             listElem.attr('curveid', id);
             dispElem.show();
-         } catch (err) {
-            console.log(err);
-         }
+            selectCurve(listElem);
+         //} catch (err) {
+         //   console.log(err);
+         //}
       }
    }
 }
