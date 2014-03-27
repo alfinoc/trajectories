@@ -391,6 +391,7 @@ function drawGrid(center, viewWidth, viewHeight) {
    var duration = 0.2;
    grid.xAxis.onFrame = getGradientAnimCallback(duration, AXES_COLOR);
    grid.yAxis.onFrame = getGradientAnimCallback(duration, AXES_COLOR);
+   grid.crossLine.onFrame = getGradientAnimCallback(duration, AXES_COLOR);
    for (var i in grid.vertLines)
       grid.vertLines[i].onFrame = getGradientAnimCallback(duration, GRID_COLOR);
    for (var i in grid.horizLines)

@@ -71,6 +71,10 @@ canvas {
 	text-align: left;
 }
 
+#curvelist li .wrap div {
+	overflow: scroll;
+}
+
 #newcurve:hover {
 	-webkit-animation: enlargePlus forwards .2s;
 }

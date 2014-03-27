@@ -38,7 +38,7 @@ function setupCurveOption() {
 
    // equation entry and formatting
    eqDisp.hide();
-   eqEdit.attr('placeholder', 'enter function');
+   eqEdit.attr('placeholder', 'enter polynomial');
    eqEdit.keypress(getEquationEnterCallback(eqDisp, eqEdit, newCurve, color));
 
    eqDisp.dblclick(getEquationEditCallback(eqDisp, eqEdit));
@@ -62,13 +62,14 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
    return function(event) {
       if (event.which == 13) {
          var formString = editElem.val();
-         //try {
+         if (formString.trim() == '')
+            return;
+         
+         try {
             // retrieve, parse, and prettify input equation
             formString = PolySimplifier.preformat(formString);
             var tree = parser.parse(formString);
-            console.log("tree: " + tree);
             var coeff = PolySimplifier.reduceToGeneralForm(tree);
-            console.log("simplified result: " + coeff);
             var numSamples = degree(coeff) <= 1 ? 10 : undefined;
             editElem.hide();
             dispElem.html(PolySimplifier.coeffToJQMath(coeff));
@@ -85,9 +86,9 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
             listElem.attr('curveid', id);
             dispElem.show();
             selectCurve(listElem);
-         //} catch (err) {
-         //   console.log(err);
-         //}
+         } catch (err) {
+            console.log(err);
+         }
       }
    }
 }

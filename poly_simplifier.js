@@ -27,8 +27,7 @@ var PolySimplifier = {
             var e2 = this.reduceToGeneralForm(node[2]);
             return this.multiply(e1, e2);
          case "quotient":
-            alert("no division yet!");
-            return [];
+            return [node[1] / node[2]];
          case "power":
             var e1 = this.reduceToGeneralForm(node[1]);
             var e2 = this.reduceToGeneralForm(node[2]);
@@ -124,16 +123,10 @@ var PolySimplifier = {
       str = str.toLowerCase();
       str = str.replace(/\s/g,'');
       for (var i = 1; i < str.length; i++) {
-         //var numLet = Number(str[i]) && str[i - 1].match(/^[a-zA-Z]+$/);
-         //var letNum = Number(str[i - 1]) && str[i].match(/^[a-zA-Z]+$/);
 
          var termParen = str[i - 1].match(/^[a-zA-Z\)]+$/) && str[i].match(/^[0-9a-zA-Z\(]+$/);
          var parenTerm = str[i - 1].match(/^[0-9a-zA-Z\)]+$/) && str[i].match(/^[a-zA-Z\(]+$/);
 
-         //var dupLet = str[i].match(/^[a-zA-Z]+$/) && str[i + 1].match(/^[a-zA-Z]+$/)
-         //             && str[i] = str[i + 1];
-
-         //if (numLet || letNum || termParen || parenTerm) {
          if (termParen || parenTerm) {
             str = str.substring(0, i) + '*' + str.substring(i, str.length);
             i++;  // just added a character
