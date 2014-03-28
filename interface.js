@@ -67,13 +67,15 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
          
          try {
             // retrieve, parse, and prettify input equation
-            formString = PolySimplifier.preformat(formString);
             var tree = parser.parse(formString);
-            var coeff = PolySimplifier.reduceToGeneralForm(tree);
-            var numSamples = degree(coeff) <= 1 ? 10 : undefined;
+            var eqInfo = EQEvaluator.getEvaluator(tree);
+            var numSamples = undefined;
             editElem.hide();
-            dispElem.html(PolySimplifier.coeffToJQMath(coeff));
-            dispElem.attr('title', coeff);
+            dispElem.html(formString);
+            if (eqInfo.coeff) {
+               numSamples = PolySimplifier.degree(eqInfo.coeff) <= 1 ? 10 : undefined;
+               dispElem.html(PolySimplifier.coeffToJQMath(eqInfo.coeff));
+            }
             M.parseMath(dispElem[0]);
 
             // update plotter
@@ -81,8 +83,7 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
             if (id = listElem.attr('curveid'))
                plotter.removeCurve(id);
 
-            id = plotter.addCurve(getPolynomialByCoeff(coeff),
-                                  'rgb(' + color + ')', numSamples);
+            id = plotter.addCurve(eqInfo.fn, 'rgb(' + color + ')', numSamples);
             listElem.attr('curveid', id);
             dispElem.show();
             selectCurve(listElem);
@@ -118,36 +119,6 @@ function zoom(event) {
    var event = window.event || event; // old IE support
    var dir = Math.max(-1, Math.min(1, (event.wheelDelta || -event.detail)));
    plotter.scale(1 + 0.01 * dir);
-}
-
-// returns a polynomial function based on 'coeff' an array of coefficients, the
-// ith index of which is the coefficient for the term of exponent i in the polynomial
-function getPolynomialByCoeff(coeff) {
-   return function(x) {
-      var val = 0;
-      for (var i = 0; i < coeff.length; i++)
-         val += coeff[i] * Math.pow(x, i);
-      return val;
-   }
-}
-
-// returns a polynomial function based on 'zeros' an array of zeros, where each
-// zero z corresponds to a (x - z) factor in the polynomial
-function getPolynomialByZeros(zeros) {
-   return function(x) {
-      var val = 1;
-      for (var i = 0; i < zeros.length; i++)
-         val *= (x - zeros[i]);
-      return val;
-   }
-}
-
-// returns the highest degree of the polynomial coefficient array 'coeff'
-function degree(coeff) {
-   var last = coeff.length - 1;
-   while (!coeff[last] && last >= 0)
-      last--;
-   return last;
 }
 
 (function($){
