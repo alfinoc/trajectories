@@ -134,6 +134,7 @@ var ViewManager = {
       var samples = getFunctionSamples(fn, numSamples, -view.bounds.width,
                                                     2 * view.bounds.width);
       var curve = new Path(samples);
+      curve.fullySelected = true;
       curve.strokeWidth = strokeWidth;
       curve.smooth();
       curve.strokeColor = color;
@@ -386,7 +387,8 @@ function drawGrid(center, viewWidth, viewHeight) {
    var minDim = Math.min(bounds.maxX, bounds.maxY);
    grid.crossLine = getLine(center.x - minDim, center.y + minDim,
                             center.x + minDim, center.y - minDim)
-
+   grid.crossLine.scale(10, center);
+   
    // attach callbacks for initial animation
    var duration = 0.2;
    grid.xAxis.onFrame = getGradientAnimCallback(duration, AXES_COLOR);
