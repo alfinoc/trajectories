@@ -249,11 +249,11 @@ var PolySimplifier = {
    // denominators up to 100), returns n.
    rationalize: function(n, tolerance) {
       tolerance = tolerance || 0.0001;
-      for (var d = 2; d < 100; d++) {
-         if (Math.abs(n * d - Math.round(n * d)) < tolerance) {
+      if (Math.abs(n - Math.round(n)) < tolerance)
+         return n;
+      for (var d = 2; d < 100; d++)
+         if (Math.abs(n * d - Math.round(n * d)) < tolerance)
             return n * d + '/' + d;
-         }
-      }
       return n;
    }
 }
