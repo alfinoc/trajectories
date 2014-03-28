@@ -65,7 +65,7 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
          if (formString.trim() == '')
             return;
          
-         //try {
+         try {
             // retrieve, parse, and prettify input equation
             var tree = parser.parse(formString);
             var eqInfo = EQEvaluator.getEvaluator(tree);
@@ -87,9 +87,9 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
             listElem.attr('curveid', id);
             dispElem.show();
             selectCurve(listElem);
-         //} catch (err) {
-         //   console.log(err);
-         //}
+         } catch (err) {
+            console.log(err);
+         }
       }
    }
 }

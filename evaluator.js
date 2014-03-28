@@ -74,10 +74,9 @@ var EQEvaluator = {
                return false;
             return this.isPolynomial(node[1]);
          case "power":
-            var e1 = this.isPolynomial(node[1]);
             if (node[2][0] != "num")  // require constant exponent
                return false;
-            return res;
+            return this.isPolynomial(node[1]);
          case "sum":
          case "product":
             return this.isPolynomial(node[1]) && this.isPolynomial(node[2]);
@@ -107,6 +106,8 @@ var PolySimplifier = {
 
    // given a parsed polynomial tree, produces a general representation of that
    // polynomial: an array of coefficients (see above definition for io details)
+   // assumes that 'node' is a polynomial by the specifications of 'isPolynomial'
+   // above. otherwise, all bets are off.
    reduceToGeneralForm: function(node) {
       switch (node[0]) {
          case "num":
@@ -123,7 +124,7 @@ var PolySimplifier = {
             return this.multiply(e1, e2);
          case "quotient":
             var e1 = this.reduceToGeneralForm(node[1]);
-            return this.multiply(e1, [1 / node[2]]);
+            return this.multiply(e1, [1 / node[2][1]]);
          case "power":
             var e1 = this.reduceToGeneralForm(node[1]);
             var e2 = this.reduceToGeneralForm(node[2]);
@@ -182,15 +183,16 @@ var PolySimplifier = {
    // returns a String representation of the tree with root 'node', in a form
    // readable by jqMath.
    coeffToJQMath: function(coeff) {
+      console.log(coeff);
       var termStrs = [];
       for (var deg = coeff.length - 1; deg >= 0; deg--) {
          if (coeff[deg]) {
             var term = "";
 
-            if (coeff[deg] == -1)
+            if (coeff[deg] < 0)
                term += '-';
-            else if (coeff[deg] != 1 || deg == 0)
-               term += coeff[deg];
+            if (Math.abs(coeff[deg]) != 1 || deg == 0)
+               term += this.rationalize(Math.abs(coeff[deg]));
 
             if (deg != 0)
                term += 'x';
@@ -241,4 +243,17 @@ var PolySimplifier = {
          last--;
       return last;
    },
+
+   // returns a string fraction i/j, where i and j are integers and 
+   // i/j = n +- tolerance, or, if it can't find such a fraction (only checks
+   // denominators up to 100), returns n.
+   rationalize: function(n, tolerance) {
+      tolerance = tolerance || 0.0001;
+      for (var d = 2; d < 100; d++) {
+         if (Math.abs(n * d - Math.round(n * d)) < tolerance) {
+            return n * d + '/' + d;
+         }
+      }
+      return n;
+   }
 }

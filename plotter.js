@@ -134,7 +134,6 @@ var ViewManager = {
       var samples = getFunctionSamples(fn, numSamples, -view.bounds.width,
                                                     2 * view.bounds.width);
       var curve = new Path(samples);
-      curve.fullySelected = true;
       curve.strokeWidth = strokeWidth;
       curve.smooth();
       curve.strokeColor = color;
