@@ -66,15 +66,21 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
             return;
          
          try {
-            // retrieve, parse, and prettify input equation
+            // retrieve and parse
             var tree = parser.parse(formString);
             var eqInfo = EQEvaluator.getEvaluator(tree);
             var numSamples = undefined;
             editElem.hide();
-            dispElem.html(formString);
+            
+            // format according to polynomial / general
             if (eqInfo.coeff) {
                numSamples = PolySimplifier.degree(eqInfo.coeff) <= 1 ? 10 : undefined;
                dispElem.html(PolySimplifier.coeffToJQMath(eqInfo.coeff));
+            } else {
+               console.log(formString);
+               formString = formString.replace(/\(/g, '{');
+               formString = formString.replace(/\)/g, '}');
+               dispElem.html("$$" + formString + "$$");
             }
             M.parseMath(dispElem[0]);
 
