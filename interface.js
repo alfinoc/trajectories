@@ -77,10 +77,7 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
                numSamples = PolySimplifier.degree(eqInfo.coeff) <= 1 ? 10 : undefined;
                dispElem.html(PolySimplifier.coeffToJQMath(eqInfo.coeff));
             } else {
-               console.log(formString);
-               formString = formString.replace(/\(/g, '{');
-               formString = formString.replace(/\)/g, '}');
-               dispElem.html("$$" + formString + "$$");
+               dispElem.html("$$" + EQEvaluator.generalToJQMath(tree) + "$$");
             }
             M.parseMath(dispElem[0]);
 

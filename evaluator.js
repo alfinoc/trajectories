@@ -90,6 +90,37 @@ var EQEvaluator = {
       }
    },
 
+   // returns a String representation of the equation tree with root 'node' suitable
+   // for jqmath
+   generalToJQMath: function(node) {
+      var op;
+      switch (node[0]) {
+         case "negative":
+            return "-" + this.generalToJQMath(node[1]);
+         case "num":
+            return node[1];
+         case "var":
+            return "x";
+         case "e":
+            return "e";
+         case "pi":
+            return "pi";
+         case "quotient":
+            op = "/";
+            break;
+         case "power":
+            op = "^"
+            break;
+         case "sum":
+            op = "+"
+            break;
+         case "product":
+            op = "";  // implicit multiplication
+            break;
+      }
+      return "{" + this.generalToJQMath(node[1]) + "}" + op +
+             "{" + this.generalToJQMath(node[2]) + "}";
+   },
 }
 
 /*
