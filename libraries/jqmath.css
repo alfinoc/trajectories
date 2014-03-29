@@ -2,7 +2,7 @@
 	Firefox's MathML layout, which seems better than http://www.w3.org/TR/mathml-for-css/ */
 
 /* Cambria [Math]'s line height currently (2/11) is large in most non-Microsoft browsers: */
-fmath, .fm-math		{ font-family:  STIXGeneral, 'DejaVu Serif', 'DejaVu Sans',
+fmath, .fm-math		{ font-family:  'Neo Euler', STIXGeneral, 'DejaVu Serif', 'DejaVu Sans',
 						/* Cambria, 'Cambria Math', */ Times, 'Lucida Sans Unicode',
 						OpenSymbol, 'Standard Symbols L', serif; line-height: 1.2 }
 fmath mo, .fm-mo, .ma-sans-serif, fmath mi[mathvariant*=sans-serif],

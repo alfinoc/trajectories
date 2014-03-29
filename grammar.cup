@@ -27,6 +27,11 @@
 
 /* operator associations and precedence */
 
+%left NUMBER
+%left VAR
+%left PI
+%left E
+%left '('
 %left '+' '-'
 %left UMINUS
 %left '*' '/' ADJ

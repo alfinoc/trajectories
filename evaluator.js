@@ -128,8 +128,9 @@ var PolySimplifier = {
          case "power":
             var e1 = this.reduceToGeneralForm(node[1]);
             var e2 = this.reduceToGeneralForm(node[2]);
-            var res = e1;
-            for (var i = 0; i < e2 - 1; i++)
+            var res = [1];
+
+            for (var i = 0; i < e2; i++)
                res = this.multiply(e1, res);
             return res;
          case "negative":
@@ -203,9 +204,9 @@ var PolySimplifier = {
             termStrs.push(term);
          }
       }
-      
+
       if (termStrs.length == 0)
-         return "";
+         return "$$0$$";
       var res = "$$" + termStrs[0];
       for (var i = 1; i < termStrs.length; i++) {
          res += termStrs[i][0] == '-' ? '' : '+';
