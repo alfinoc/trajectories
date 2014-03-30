@@ -11,7 +11,7 @@ var NUM_EXTREME = 10;
 var CURVE_WIDTH = 2;
 var DEFAULT_SAMPLES = 300;
 
-var MAX_ITER = 10;
+var MAX_ITER = 20;
 
 var ViewManager = {
    // view window state
@@ -402,8 +402,7 @@ function drawGrid(center, viewWidth, viewHeight) {
 
 // returns a callback for the initial gradient animation of a path.
 // must be attached to the given line. 'baseColor' is the destination color
-// of the line and 'speedFactor' is the 1 over the number of seconds the animation
-// will take. 'start' is the beginning time of the animation, defaulting to 0
+// of the line and 'duration' is the number of seconds the animation will take.
 function getGradientAnimCallback(duration, baseColor) {
    var timeLeft = duration;
    return function(event) {

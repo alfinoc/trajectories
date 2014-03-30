@@ -53,26 +53,27 @@ canvas {
 	margin: 5px;
 	margin-left: 0px;
 	border-left: 0px;
-	border: 1px solid;
-	border-right: 10px solid;
+	border: 2px solid;
 	border-color: black;
 	border-left: 0px;
-
-	width: 170px;
 	cursor: pointer;
 }
 
 #curvelist li input, #curvelist li .wrap div {
 	background-color: transparent;
 	font-size: 12pt;
-	width: 90%;
 	outline: none;
 	padding: 0px;
 	text-align: left;
 }
 
+#curvelist li input {
+	min-width: 100px;
+}
+
 #curvelist li .wrap div {
-	overflow: hidden;
+	margin-left: 20px;
+	margin-right: 20px;
 }
 
 #newcurve:hover {

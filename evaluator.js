@@ -56,11 +56,29 @@ var EQEvaluator = {
             }
          case "negative":
             var e1 = this.getGeneralEvaluator(node[1]);
-            return function(x) { return - e1(x) };
+            return function(x) { return - e1(x); };
          case "e":
-            return function(x) { return Math.E };
+            return function(x) { return Math.E; };
          case "pi":
-            return function(x) { return Math.PI };
+            return function(x) { return Math.PI; };
+         case "sin":
+            var inner = this.getGeneralEvaluator(node[1]);
+            return function(x) { return Math.sin(inner(x)); };
+         case "cos":
+            var inner = this.getGeneralEvaluator(node[1]);
+            return function(x) { return Math.cos(inner(x)); };
+         case "tan":
+            var inner = this.getGeneralEvaluator(node[1]);
+            return function(x) { return Math.tan(inner(x)); };
+         case "asin":
+            var inner = this.getGeneralEvaluator(node[1]);
+            return function(x) { return Math.asin(inner(x)); };
+         case "acos":
+            var inner = this.getGeneralEvaluator(node[1]);
+            return function(x) { return Math.acos(inner(x)); };
+         case "atan":
+            var inner = this.getGeneralEvaluator(node[1]);
+            return function(x) { return Math.atan(inner(x)); };
       }
    },
 
@@ -87,6 +105,13 @@ var EQEvaluator = {
          case "e":
          case "pi":
             return true;
+         case "sin":
+         case "cos":
+         case "tan":
+         case "asin":
+         case "acos":
+         case "atan":
+            return false;
       }
    },
 
@@ -105,6 +130,18 @@ var EQEvaluator = {
             return "e";
          case "pi":
             return "pi";
+         case "sin":
+         case "cos":
+         case "tan":
+         case "asin":
+         case "acos":
+         case "atan":
+            var inner = "";
+            if (node[1] == "num" || node[1] == "var" || node[1] == "pi" || node[1] == "e")
+               inner = this.generalToJQMath(node[1]);
+            else
+               inner = "(" + this.generalToJQMath(node[1]) + ")"
+            return "\\" + node[0] + inner;
          case "quotient":
             op = "/";
             break;
@@ -223,6 +260,8 @@ var PolySimplifier = {
 
             if (coeff[deg] < 0)
                term += '-';
+
+            term += this.constantCheck(coeff[deg]) || "";
             if (Math.abs(coeff[deg]) != 1 || deg == 0)
                term += this.rationalize(Math.abs(coeff[deg]));
 
@@ -281,11 +320,20 @@ var PolySimplifier = {
    // denominators up to 100), returns n.
    rationalize: function(n, tolerance) {
       tolerance = tolerance || 0.0001;
+
       if (Math.abs(n - Math.round(n)) < tolerance)
          return n;
       for (var d = 2; d < 100; d++)
          if (Math.abs(n * d - Math.round(n * d)) < tolerance)
             return n * d + '/' + d;
       return n;
-   }
+   },
+
+   constantCheck: function(n) {
+      if (Math.abs(n - Math.PI) < 0.0001)
+         return "pi";
+      if (Math.abs(n - Math.E) < 0.0001)
+         return "e";
+      return undefined;
+   },
 }

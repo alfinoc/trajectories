@@ -38,7 +38,7 @@ function setupCurveOption() {
 
    // equation entry and formatting
    eqDisp.hide();
-   eqEdit.attr('placeholder', 'enter polynomial');
+   eqEdit.attr('placeholder', 'enter function of x');
    eqEdit.keypress(getEquationEnterCallback(eqDisp, eqEdit, newCurve, color));
 
    eqDisp.dblclick(getEquationEditCallback(eqDisp, eqEdit));
@@ -65,7 +65,7 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
          if (formString.trim() == '')
             return;
          
-         try {
+         //try {
             // retrieve and parse
             var tree = parser.parse(formString);
             var eqInfo = EQEvaluator.getEvaluator(tree);
@@ -90,9 +90,9 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
             listElem.attr('curveid', id);
             dispElem.show();
             selectCurve(listElem);
-         } catch (err) {
-            console.log(err);
-         }
+         //} catch (err) {
+         //   console.log(err);
+         //}
       }
    }
 }
