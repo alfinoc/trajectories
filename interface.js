@@ -22,6 +22,11 @@ function attachMouseHandlers() {
    }
 }
 
+function setupDemoGraph() {
+   setupCurveOption();
+   $('#curvelist input').val('-x^2+2');
+}
+
 function setupCurveOption() {
    unselectCurve($('#curvelist li.selected'));
    
@@ -53,6 +58,11 @@ function setupCurveOption() {
       selectCurve(target);
    });
 
+   // remove button
+   var revButt = $('body .remove').clone();
+   newCurve.append(revButt);
+   revButt.click(getRemoveButtonCallback(newCurve));
+
    newCurve.append(wrap);
    $('#curvelist').prepend(newCurve);
    eqEdit.focus();
@@ -65,7 +75,7 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
          if (formString.trim() == '')
             return;
          
-         //try {
+         try {
             // retrieve and parse
             var tree = parser.parse(formString);
             var eqInfo = EQEvaluator.getEvaluator(tree);
@@ -82,17 +92,23 @@ function getEquationEnterCallback(dispElem, editElem, listElem, color) {
             M.parseMath(dispElem[0]);
 
             // update plotter
-            var id;
-            if (id = listElem.attr('curveid'))
-               plotter.removeCurve(id);
+            var id, prevId, prevTrajs;
+            if (prevId = listElem.attr('curveid')) { 
+               prevTrajs = plotter.getTrajectories(prevId);
+               plotter.removeCurve(prevId);
+            }
 
             id = plotter.addCurve(eqInfo.fn, 'rgb(' + color + ')', numSamples);
+            
+            if (prevTrajs && prevTrajs.length > 0)
+               plotter.transferTrajectories(prevTrajs, id);
+
             listElem.attr('curveid', id);
             dispElem.show();
             selectCurve(listElem);
-         //} catch (err) {
-         //   console.log(err);
-         //}
+         } catch (err) {
+            console.log(err);
+         }
       }
    }
 }
@@ -102,6 +118,14 @@ function getEquationEditCallback(dispElem, inputElem) {
       dispElem.hide();
       inputElem.show();
       inputElem.focus();
+   }
+}
+
+function getRemoveButtonCallback(listElem) {
+   return function(event) {
+      var target = $(event.target).closest('#curvelist li');
+      plotter.removeCurve(target.attr('curveid'));
+      listElem.remove();
    }
 }
 
@@ -116,6 +140,12 @@ function unselectCurve(listElem) {
    plotter.setActiveCurve(undefined);
    listElem.removeClass('selected');
    listElem.find('.wrap').css('background-color', 'white');
+}
+
+function removeCurve(listElem) {
+   var id = listElem.attr('curveid');
+   plotter.removeCurve(id);
+   listElem.remove();
 }
 
 function zoom(event) {

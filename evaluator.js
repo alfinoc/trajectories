@@ -136,11 +136,11 @@ var EQEvaluator = {
          case "asin":
          case "acos":
          case "atan":
-            var inner = "";
+            var inner = " ";
             if (node[1] == "num" || node[1] == "var" || node[1] == "pi" || node[1] == "e")
-               inner = this.generalToJQMath(node[1]);
+               inner += this.generalToJQMath(node[1]);
             else
-               inner = "(" + this.generalToJQMath(node[1]) + ")"
+               inner += "(" + this.generalToJQMath(node[1]) + ")"
             return "\\" + node[0] + inner;
          case "quotient":
             op = "/";
@@ -157,6 +157,24 @@ var EQEvaluator = {
       }
       return "{" + this.generalToJQMath(node[1]) + "}" + op +
              "{" + this.generalToJQMath(node[2]) + "}";
+   },
+
+   // TO-DO
+   // returns an array of discontinuities (functional x values) of 'fn' within a
+   // specified range [-min, max]. the discontinuties are approximated by sampling
+   // 'numSamples' segments from the input range
+   getDiscontinuities: function(fn, min, max, numSamples) {
+      var inv = function(x) { return 1 / fn(x); };
+      var interval = (max - min) / numSamples;
+      var res = [];
+      for (var x = min; x < max; x += interval) {
+         var before = inv(x);
+         var after = inv(x + interval);
+         if (before * after < 0) {  // segment crosses x-axis
+            res.push(x + interval / 2);
+         }  
+      }
+      return res;
    },
 }
 

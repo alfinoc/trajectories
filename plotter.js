@@ -112,15 +112,28 @@ var ViewManager = {
       if (strokeWidth == undefined)
          strokeWidth = CURVE_WIDTH;
       var path = this.drawFunction(fn, numSamples, strokeWidth, color);
-      this.curves.push({ "fn":fn, "path": path});
+      this.curves.push({ "fn":fn, "path": path, "trajs": []});
       paper.view.draw();
       return this.curves.length - 1;
    },
 
    // removes the path with given 'id'
    removeCurve: function(id) {
+      if (!this.curves[id])
+         return;
+
+      var trajs = this.curves[id].trajs;
       this.curves[id].path.remove();
       this.curves[id] = undefined;
+
+      console.log(trajs);
+      for (var i in trajs)
+         this.removeTrajectory(trajs[i]);
+
+      if (this.activeCurve == id)
+         this.activeCurve = undefined;
+
+      paper.view.draw();
    },
 
    // sets the current active curve, upon which new trajectories will be created
@@ -145,6 +158,9 @@ var ViewManager = {
    // created if none is active. stores a reference to the new trajectory, and returns
    // its id.
    addTrajectory: function(id, seed, color) {
+      if (!id)
+         return;
+
       if (color == undefined)
          color = TRAJ_COLOR
 
@@ -159,7 +175,10 @@ var ViewManager = {
 
       this.trajectories.push({'curve': curve, 'traj':traj,
                               'seed':seed, 'handle':seedHandle});
-      return this.trajectories.length -1;
+      var newTrajId = this.trajectories.length -1;
+      curve.trajs.push(newTrajId);
+      paper.view.draw();
+      return newTrajId;
    },
 
    // moves the seed of the trajectory with given 'trajId' to functional-valued
@@ -174,15 +193,37 @@ var ViewManager = {
       prev.traj = newTraj;
       prev.seed = newSeed;
       prev.handle.position = new Point(newSeed, 0).toScreenSpace();
-      prev.handle.position.y = this.trueCenter.y
+      prev.handle.position.y = this.trueCenter.y;
    },
 
    // removes the trajectory with given 'id'
    removeTrajectory: function(id) {
+      console.log(id);
+      if (!this.trajectories[id])
+         return;
+
       this.trajectories[id].traj.remove();
       this.trajectories[id].handle.remove();
       this.trajectories[id] = undefined;
+      paper.view.draw();
    },
+
+   transferTrajectories: function(trajIds, dstCurveId) {
+      var dst = this.curves[dstCurveId];
+      for (var trajId in trajIds) {
+         var traj = this.trajectories[trajId];
+         if (traj) {
+            traj.curve = dst;
+            dst.trajs.push(trajId);
+            this.moveTrajectory(trajId, traj.seed);
+            paper.view.draw();
+         }
+      }
+   },
+
+   getTrajectories: function(curveId) {
+      return this.curves[curveId].trajs;
+   }
 }
 
 // based on the state of the view manager, creates and removes grid lines so that
@@ -242,7 +283,7 @@ function genTrajectory(curve, seed) {
       fnPt.x = fnPt.y;
       traj.add(newIter = fnPt.clone().toScreenSpace());
 
-      if (newIter.getDistance(prev) < 1)// convergence
+      if (newIter.getDistance(prev) < 1)  // convergence
          break;
 
       prev = newIter;
@@ -291,7 +332,6 @@ var movingSeed = undefined;
 function onMouseDown(event) {
    // place seed on doubleclick
    if (event.event.detail > 1 && ViewManager.activeCurve) {
-      console.log('heh');
       var newSeed = event.point.clone();
       newSeed.toFunctionSpace();
       ViewManager.addTrajectory(ViewManager.activeCurve, newSeed.x, 'black');
@@ -431,4 +471,3 @@ function getLine(x1, y1, x2, y2) {
 
 // initialize the plotter
 window.plotter = ViewManager;
-//plotter.addCurve(getPolynomialByZeros([0]), AXES_COLOR, 10, 1);

@@ -20,6 +20,7 @@ canvas {
 	height: 100%;
 	padding: 10px;
 	box-sizing: border-box;
+	min-height: 40px;
 }
 
 #newcurve svg {
@@ -27,13 +28,16 @@ canvas {
             filter: drop-shadow( 2px 2px 1px rgba(0,0,0,0.2) );
 }
 
+body > .remove {
+	display: none;
+}
+
 #curvelist {
 	position: absolute;
 	top: 0px;
 	left: 0px;
-	margin-top: 50px;
+	margin-top: 40px;
 	max-height: 90%;
-	overflow: hidden;
 }
 
 #newcurve {
@@ -57,14 +61,15 @@ canvas {
 	border-color: black;
 	border-left: 0px;
 	cursor: pointer;
+	position: relative;
 }
 
 #curvelist li input, #curvelist li .wrap div {
 	background-color: transparent;
 	font-size: 12pt;
-	outline: none;
 	padding: 0px;
 	text-align: left;
+	outline: none;
 }
 
 #curvelist li input {
@@ -74,6 +79,36 @@ canvas {
 #curvelist li .wrap div {
 	margin-left: 20px;
 	margin-right: 20px;
+}
+
+#curvelist li .remove {
+	position: absolute;
+	bottom: -10px;
+	right: -10px;
+	width: 20px;
+	height: 20px;
+	background-color: white;
+	border: 1px solid;
+	border-color: inherit;
+	border-radius: 50%;
+	box-shadow: inherit;
+	display: none;
+	z-index: 100;
+}
+
+#curvelist li:hover .remove {
+	display: block;
+}
+
+#curvelist li .remove:hover {
+	background-color: black;
+	border-color: black;
+	fill: white;
+}
+
+#curvelist li .remove svg {
+	width: 100%;
+	height: 100%;
 }
 
 #newcurve:hover {
